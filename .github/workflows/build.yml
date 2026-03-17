@@ -32,9 +32,6 @@ jobs:
           libffi-dev \
           libjpeg-dev \
           zlib1g-dev \
-          libgl1-mesa-dev\
-          libglx-mesa0 \
-          libgles2-mesa-dev \
           libdrm-dev \
           libgbm-dev \
           libegl1-mesa-dev \
