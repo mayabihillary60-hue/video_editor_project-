@@ -17,28 +17,7 @@ jobs:
         with:
           python-version: '3.9'
 
-     - name: Install system dependencies
-        run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          git \
-          wget \
-          unzip \
-          python3-pip \
-          python3-setuptools \
-          python3-dev \
-          build-essential \
-          libssl-dev \
-          libffi-dev \
-          libjpeg-dev \
-          zlib1g-dev \
-          libdrm-dev \
-          libgbm-dev \
-          libegl1-mesa-dev \
-          libwayland-dev \
-          libx11-dev \
-          libxext-dev \
-          libxrender-dev
+ 
       
       - name: Install Python dependencies
         run: |
