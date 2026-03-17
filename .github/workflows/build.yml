@@ -1,0 +1,30 @@
+name: Build Android APK
+
+on:
+    push:
+        branches:[ main, master ]
+    pull_request:
+        branches:[ main, master ]
+    workflow_dispatch:
+        
+jobs:
+    build-android:
+        name: Build for Android
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Build with Buildozer
+              uses: ArtemSBulgakov/buildozer-action@v1
+              id: buildozer
+              with:
+                workdir:  .
+                buildozer_version: stable
+
+            - name: Upload APK artifact
+              uses: actions/uplaod-artifact@v4
+              with: 
+                name: video-editor-apk
+                path: ${{ steps.buildozer.outputs.filename}} 
