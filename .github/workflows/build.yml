@@ -1,30 +1,37 @@
-name: Build Android APK
+name: Build and Test Video Editor
 
 on:
-    push:
-        branches:[ main, master ]
-    pull_request:
-        branches:[ main, master ]
-    workflow_dispatch:
-        
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
-    build-android:
-        name: Build for Android
-        runs-on: ubuntu-latest
-        
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+  build:
+    runs-on: ubuntu-latest
 
-            - name: Build with Buildozer
-              uses: ArtemSBulgakov/buildozer-action@v1
-              id: buildozer
-              with:
-                workdir:  .
-                buildozer_version: stable
+    steps:
+    - uses: actions/checkout@v4
 
-            - name: Upload APK artifact
-              uses: actions/uplaod-artifact@v4
-              with: 
-                name: video-editor-apk
-                path: ${{ steps.buildozer.outputs.filename}} 
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        python test_simple.py
+
+    - name: Verify main script runs
+      run: |
+        python main.py
