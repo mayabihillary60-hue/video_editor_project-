@@ -60,22 +60,29 @@ jobs:
       - name: Create buildozer.spec
         run: |
           cat > buildozer.spec << 'EOF'
-        [app]
-        title = Video Editor
-        package.name = videoeditor
-        package.domain = org.videoeditor
-        source.dir = .
-        source.include_exts = py,png,jpg,kv,atlas
-        version = 0.1
-        requirements = python3,kivy==2.2.1
-        orientation = portrait
-        osx.python_version = 3
-        osx.kivy_version = 2.2.1
-        fullscreen = 0
+          [app]
+          title = Video Editor
+          package.name = videoeditor
+          package.domain = org.videoeditor
+          source.dir = .
+          source.include_exts = py,png,jpg,kv,atlas
+          version = 0.1
+          requirements = python3,kivy==2.2.1
+          orientation = portrait
+          osx.python_version = 3
+          osx.kivy_version = 2.2.1
+          fullscreen = 0
 
-        [buildozer]
-        log_level = 2
-        warn_on_root = 1
+          [buildozer]
+          log_level = 2
+          warn_on_root = 1
+
+          [android]
+          api = 33
+          minapi = 21
+          ndk = 25b
+          android.accept_sdk_license = True
+          EOF
 
 [android]
 api = 33
