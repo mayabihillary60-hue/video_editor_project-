@@ -60,6 +60,156 @@ class ProgressDialog:
         self.top.destroy()
 
 class VideoEditor:
+     def apply_filter(self):
+    """Apply visual filters to video"""
+    if not self.input_file:
+        messagebox.showerror("Error", "Please select an input video first!")
+        return
+    
+    # Create filter dialog
+    filter_window = tk.Toplevel(self.root)
+    filter_window.title("Apply Filter")
+    filter_window.geometry("400x500")
+    filter_window.transient(self.root)
+    filter_window.grab_set()
+    
+    ttk.Label(filter_window, text="Select Filter:").pack(pady=10)
+    
+    filter_var = tk.StringVar(value="grayscale")
+    
+    filters = [
+        ("Grayscale", "grayscale"),
+        ("Sepia", "sepia"),
+        ("Negative", "negative"),
+        ("Brightness", "brightness"),
+        ("Contrast", "contrast"),
+        ("Blur", "blur"),
+        ("Sharpen", "sharpen"),
+        ("Edge Detect", "edge_detect"),
+        ("Pixelate", "pixelate"),
+        ("Vintage", "vintage")
+    ]
+    
+    # Filter selection
+    filter_frame = ttk.Frame(filter_window)
+    filter_frame.pack(pady=10)
+    
+    for i, (text, value) in enumerate(filters):
+        col = i % 2
+        row = i // 2
+        ttk.Radiobutton(
+            filter_frame,
+            text=text,
+            variable=filter_var,
+            value=value
+        ).grid(row=row, column=col, sticky=tk.W, padx=10, pady=2)
+    
+    # Intensity slider (for filters that support it)
+    ttk.Label(filter_window, text="Intensity:").pack(pady=5)
+    intensity_var = tk.DoubleVar(value=1.0)
+    intensity_scale = ttk.Scale(
+        filter_window,
+        from_=0.0,
+        to=2.0,
+        orient=tk.HORIZONTAL,
+        variable=intensity_var,
+        length=200
+    )
+    intensity_scale.pack(pady=5)
+    
+    # Preview area (simplified)
+    preview_frame = ttk.LabelFrame(filter_window, text="Preview", padding="5")
+    preview_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+    
+    preview_label = ttk.Label(
+        preview_frame,
+        text="Filter preview will appear here\n(coming soon)",
+        background="#333333",
+        foreground="white"
+    )
+    preview_label.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+    
+    # Output location
+    ttk.Label(
+        filter_window,
+        text="Output will be saved to 'outputs/filtered_video.mp4'"
+    ).pack(pady=5)
+    
+    # Apply button
+    ttk.Button(
+        filter_window,
+        text="Apply Filter",
+        command=lambda: self.start_apply_filter(
+            filter_var.get(),
+            intensity_var.get(),
+            filter_window
+        )
+    ).pack(pady=10)
+
+def start_apply_filter(self, filter_type, intensity, window):
+    """Start filter application in a separate thread"""
+    window.destroy()
+    
+    # Set output file
+    self.output_file = str(Path("outputs/filtered_video.mp4"))
+    os.makedirs("outputs", exist_ok=True)
+    self.output_label.config(text="filtered_video.mp4")
+    
+    # Show progress dialog
+    progress = ProgressDialog(self.root, f"Applying {filter_type} Filter")
+    
+    def process():
+        success, result = self.processor.apply_filter(
+            self.input_file,
+            self.output_file,
+            filter_type,
+            intensity,
+            lambda v, s: progress.update_progress(v, s)
+        )
+        
+        progress.close()
+        
+        if success:
+            self.status_var.set(f"Filter applied: {os.path.basename(self.output_file)}")
+            messagebox.showinfo("Success", f"Filter applied successfully!\nSaved to: {self.output_file}")
+        else:
+            self.status_var.set("Filter failed")
+            messagebox.showerror("Error", f"Failed to apply filter: {result}")
+    
+    thread = threading.Thread(target=process)
+    thread.start()
+
+def add_transition(self):
+    """Add transition between two videos"""
+    # Create transition dialog
+    transition_window = tk.Toplevel(self.root)
+    transition_window.title("Add Transition")
+    transition_window.geometry("500x400")
+    transition_window.transient(self.root)
+    transition_window.grab_set()
+    
+    ttk.Label(transition_window, text="Select two videos to add transition:").pack(pady=10)
+    
+    # Video selection
+    video_frame = ttk.Frame(transition_window)
+    video_frame.pack(pady=10)
+    
+    ttk.Label(video_frame, text="First Video:").grid(row=0, column=0, padx=5, pady=5)
+    video1_label = ttk.Label(video_frame, text="Not selected", foreground="gray", width=30)
+    video1_label.grid(row=0, column=1, padx=5, pady=5)
+    
+    def select_video1():
+        filename = filedialog.askopenfilename(
+            title="Select First Video",
+            filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv")]
+        )
+        if filename:
+            video1_label.config(text=os.path.basename(filename), foreground="black")
+            video1_label.filename = filename
+    
+    ttk.Button(video_frame, text="Browse...", command=select_video1).grid(row=0, column=2, padx=5)
+    
+    ttk.Label(video_frame, text="Second Video:").grid(row=1, column=0, padx=5, pady=5
     def __init__(self, root):
         self.root = root
         self.root.title("Enhanced Video Editor")
