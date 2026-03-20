@@ -1,36 +1,23 @@
+
 [app]
-
-# (str) Title of your application
 title = Video Editor
-
-# (str) Package name
 package.name = videoeditor
+package.domain = org.yourname
 
-# (str) Package domain (needed for android/ios packaging)
-package.domain = org.yourapp
+source.dir = src
+source.include_exts = py,png,jpg,kv,atlas
 
-# (str) Source code where the main.py live
-source.dir = .
-
-# (list) Source files to include
-source.include_exts = py,png,jpg,kv,atlas,ttf
-
-# (list) Application requirements
-requirements = python3,kivy,opencv-python,numpy,pillow,ffpyplayer
-
-# (str) Application versioning
 version = 0.1
+requirements = python3,kivy,moviepy,opencv,numpy,Pillow
 
-# (str) Presplash of the application
-presplash.filename = %(source.dir)s/presplash.png
-
-# (str) Icon of the application
-icon.filename = %(source.dir)s/icon.png
+orientation = portrait
+osx.python_version = 3
+osx.kivy_version = 2.1.0
 
 [buildozer]
-
-# (int) Log level (0-2)
 log_level = 2
-
-# (str) Path to build artifacts to store
 warn_on_root = 1
+EOF
+
+# Build APK (requires Android SDK/NDK)
+buildozer android debug
