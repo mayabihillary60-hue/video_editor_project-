@@ -63,7 +63,342 @@ class ProgressDialog:
     def close(self):
         self.top.destroy()
 
-class VideoEditor:
+class VideoEditor: 
+    def open_timeline_editor(self):
+        """Open timeline editor window"""
+        if not hasattr(self, 'timeline_editor'):
+            self.timeline_editor = TimelineEditor()
+        self.timeline_editor.create_empty_timeline()
+    
+    # Create timeline window
+        timeline_window = tk.Toplevel(self.root)
+        timeline_window.title("Timeline Editor")
+        timeline_window.geometry("1000x600")
+        timeline_window.transient(self.root)
+    
+    # Create main frames
+        top_frame = ttk.Frame(timeline_window)
+        top_frame.pack(fill=tk.X, padx=10, pady=10)
+    
+    # Timeline controls
+        ttk.Button(top_frame, text="Add Video Track", 
+                   command=self.add_video_track).pack(side=tk.LEFT, padx=5)
+        ttk.Button(top_frame, text="Add Audio Track", 
+                   command=self.add_audio_track).pack(side=tk.LEFT, padx=5)
+        ttk.Button(top_frame, text="Import Video", 
+                   command=self.import_to_timeline).pack(side=tk.LEFT, padx=5)
+        ttk.Button(top_frame, text="Save Timeline", 
+                   command=self.save_timeline).pack(side=tk.LEFT, padx=5)
+        ttk.Button(top_frame, text="Load Timeline", 
+               command=self.load_timeline).pack(side=tk.LEFT, padx=5)
+        ttk.Button(top_frame, text="Export Timeline", 
+                   command=self.export_timeline).pack(side=tk.LEFT, padx=5)
+    
+    # Timeline canvas
+        canvas_frame = ttk.Frame(timeline_window)
+        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    
+    # Scrollbars
+        h_scroll = ttk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL)
+        v_scroll = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL)
+    
+        self.timeline_canvas = tk.Canvas(
+            canvas_frame,
+            width=900,
+            height=400,
+            bg='#2a2a2a',
+            xscrollcommand=h_scroll.set,
+            yscrollcommand=v_scroll.set,
+            scrollregion=(0, 0, 2000, 1000)
+        )
+    
+        h_scroll.config(command=self.timeline_canvas.xview)
+        v_scroll.config(command=self.timeline_canvas.yview)
+    
+    # Grid layout
+        self.timeline_canvas.grid(row=0, column=0, sticky='nsew')
+        h_scroll.grid(row=1, column=0, sticky='ew')
+        v_scroll.grid(row=0, column=1, sticky='ns')
+    
+        canvas_frame.grid_rowconfigure(0, weight=1)
+        canvas_frame.grid_columnconfigure(0, weight=1)
+    
+    # Draw timeline grid
+        self.draw_timeline_grid()
+    
+    # Bind click events
+        self.timeline_canvas.bind("<Button-1>", self.on_timeline_click)
+        self.timeline_canvas.bind("<B1-Motion>", self.on_timeline_drag)
+    
+    # Store timeline window reference
+        self.timeline_window = timeline_window
+
+     def draw_timeline_grid(self):
+        """Draw timeline grid on canvas"""
+        self.timeline_canvas.delete("all")
+    
+    # Draw tracks
+        if     self.timeline_editor.current_timeline:
+        timeline =     self.timeline_editor.current_timeline
+        
+        # Draw video tracks
+            y = 50
+            for track_idx, track in enumerate(timeline.video_tracks):
+            # Track background
+                self.timeline_canvas.create_rectangle(
+                    50, y, 1900, y + 60,
+                    fill='#3a3a3a',
+                    outline='#555',
+                    tags=f"track_v_{track_idx}"
+            )
+            
+            # Track label
+                self.timeline_canvas.create_text(
+                    25, y + 30,
+                    text=f"V{track_idx+1}",
+                    fill='white',
+                    font=('Arial', 10, 'bold')
+                )
+            
+            # Draw items on track
+                for item in track:
+                    x1 = 50 + (item.start_time * 100)  # 100 pixels per second
+                    x2 = 50 + (item.end_time * 100)
+                
+                # Item rectangle
+                    rect_id = self.timeline_canvas.create_rectangle(
+                        x1, y + 5, x2, y + 55,
+                        fill='#4CAF50' if item.type == 'video' else '#2196F3',
+                        outline='white',
+                        tags=f"item_{item.id}"
+                    )
+                
+                # Item label
+                    self.timeline_canvas.create_text(
+                        (x1 + x2) / 2, y + 30,
+                        text=os.path.basename(item.source_path)[:15],
+                        fill='white',
+                        font=('Arial', 8),
+                        tags=f"label_{item.id}"
+                    )
+                 
+                # Keyframe indicators
+                    for kf in item.keyframes:
+                        kf_x = 50 + (item.start_time + kf.time) * 100
+                        self.timeline_canvas.create_oval(
+                            kf_x-3, y + 50, kf_x+3, y + 56,
+                            fill='yellow',
+                            outline='orange',
+                            tags=f"keyframe_{item.id}_{kf.time}"
+                        )
+            
+                y += 70
+        
+        # Draw audio tracks
+            for track_idx, track in enumerate(timeline.audio_tracks):
+            # Track background
+                self.timeline_canvas.create_rectangle(
+                    50, y, 1900, y + 40,
+                    fill='#2a5a5a',
+                    outline='#555',
+                    tags=f"track_a_{track_idx}"
+                )
+             
+            # Track label
+                self.timeline_canvas.create_text(
+                    25, y + 20,
+                    text=f"A{track_idx+1}",
+                    fill='white',
+                    font=('Arial', 10, 'bold')
+                )
+            
+            # Draw items on track
+                for item in track:
+                    x1 = 50 + (item.start_time * 100)
+                    x2 = 50 + (item.end_time * 100)
+                
+                    self.timeline_canvas.create_rectangle(
+                        x1, y + 5, x2, y + 35,
+                        fill='#FF9800',
+                        outline='white',
+                        tags=f"item_{item.id}"
+                    )
+            
+                y += 50
+        
+        # Time markers
+             for t in range(0, int(timeline.duration) + 1, 5):
+                x = 50 + (t * 100)
+                self.timeline_canvas.create_line(
+                    x, 30, x, y,
+                    fill='#555',
+                    dash=(2, 4)
+                )
+                self.timeline_canvas.create_text(
+                    x, 15,
+                    text=f"{t}s",
+                    fill='white',
+                    font=('Arial', 8)
+                )
+
+    def add_video_track(self):
+        """Add new video track to timeline"""
+        if hasattr(self, 'timeline_editor') and     self.timeline_editor.current_timeline:
+            self.timeline_editor.current_timeline.video_tracks.append([])
+            self.draw_timeline_grid()
+
+    def add_audio_track(self):
+        """Add new audio track to     timeline"""
+        if hasattr(self, 'timeline_editor') and     self.timeline_editor.current_timeline:
+            self.timeline_editor.current_timeline.audio_tracks.append([])
+            self.draw_timeline_grid()
+
+    def import_to_timeline(self):
+        """Import video to timeline"""
+        filename = filedialog.askopenfilename(
+            title="Select Video File",
+            filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv")]
+        )
+    
+        if filename and hasattr(self, 'timeline_editor'):
+        # Create track item
+            item = TrackItem(
+                id=str(uuid.uuid4()),
+                type='video',
+                source_path=filename,
+                start_time=0,
+                end_time=5,  # Default 5 seconds
+                layer=0,
+                keyframes=[]
+            )
+        
+        # Add to first video track
+            self.timeline_editor.current_timeline.add_video_item(item, 0)
+            self.draw_timeline_grid()
+
+    def on_timeline_click(self, event):
+       """Handle timeline click"""
+       x = self.timeline_canvas.canvasx(event.x)
+       y = self.timeline_canvas.canvasy(event.y)
+    
+    # Find clicked item
+       items =   self.timeline_canvas.find_overlapping(x-5, y-5, x+5, y+5)
+       for item_id in items:
+           tags = self.timeline_canvas.gettags(item_id)
+           for tag in tags:
+               if tag.startswith("item_"):
+                # Item clicked - show context menu
+                   self.show_item_menu(tag[5:], x, y)
+                return
+
+    def on_timeline_drag(self, event):
+      """Handle timeline drag for trimming/moving"""
+    # Implement drag functionality
+    pass
+
+    def show_item_menu(self, item_id, x, y):
+       """Show context menu for timeline item"""
+       menu = tk.Menu(self.timeline_window, tearoff=0)
+       menu.add_command(label="Add Keyframe", command=lambda: self.add_keyframe(item_id))
+       menu.add_command(label="Edit Properties", command=lambda: self.edit_item_properties(item_id))
+       menu.add_separator()
+       menu.add_command(label="Delete", command=lambda: self.delete_item(item_id))
+    
+       menu.post(int(x), int(y))
+
+    def add_keyframe(self, item_id):
+       """Add keyframe to item"""
+    # Find item
+       item = None
+       if hasattr(self, 'timeline_editor') and self.timeline_editor.current_timeline:
+           for track in self.timeline_editor.current_timeline.video_tracks:
+               for i in track:
+                   if i.id == item_id:
+                       item = i
+                       break
+    
+       if item:
+        # Create keyframe at current time (simplified - use 0 for now)
+           dialog = KeyframeDialog(self.timeline_window)
+           keyframe = dialog.show()
+        
+           if keyframe:
+            self.timeline_editor.add_keyframe(item_id, keyframe)
+               self.draw_timeline_grid()
+
+    def edit_item_properties(self, item_id):
+       """Edit item properties"""
+    # Implement properties dialog
+       pass
+
+    def delete_item(self, item_id):
+       """Delete item from timeline"""
+       if hasattr(self, 'timeline_editor') and self.timeline_editor.current_timeline:
+           for track in self.timeline_editor.current_timeline.video_tracks:
+               for i, item in enumerate(track):
+                   if item.id == item_id:
+                       track.pop(i)
+                       self.draw_timeline_grid()
+                       return
+
+    def save_timeline(self):
+       """Save timeline to file"""
+       filename = filedialog.asksaveasfilename(
+           title="Save Timeline",
+           defaultextension=".json",
+           filetypes=[("Timeline files", "*.json")]
+       )
+    
+       if filename and hasattr(self, 'timeline_editor'):
+           self.timeline_editor.save_timeline(filename)
+           messagebox.showinfo("Success", "Timeline saved successfully!")
+
+    def load_timeline(self):
+       """Load timeline from file"""
+       filename = filedialog.askopenfilename(
+           title="Load Timeline",
+           filetypes=[("Timeline files", "*.json")]
+       )
+    
+       if filename:
+           if not hasattr(self, 'timeline_editor'):
+               self.timeline_editor = TimelineEditor()
+        
+           self.timeline_editor.load_timeline(filename)
+           self.draw_timeline_grid()
+           messagebox.showinfo("Success", "Timeline loaded successfully!")
+
+    def export_timeline(self):
+       """Export timeline to video"""
+       output_file = filedialog.asksaveasfilename(
+           title="Export Video",
+           defaultextension=".mp4",
+           filetypes=[("MP4 files", "*.mp4")]
+       )
+    
+       if output_file and hasattr(self, 'timeline_editor'):
+        # Show progress dialog
+           progress = ProgressDialog(self.root, "Exporting Timeline")
+        
+           def process():
+               success, result = self.timeline_editor.export_timeline(
+                   output_file,
+                   lambda v, s:    progress.update_progress(v, s)
+               )
+              
+               progress.close()
+            
+               if success:
+                   self.status_var.set(f"Timeline exported: {os.path.basename(output_file)}")
+                   messagebox.showinfo("Success", f"Timeline exported successfully!\nSaved to: {output_file}")
+               else:
+                   self.status_var.set("Export failed")
+                   messagebox.showerror("Error", f"Export failed: {result}")
+        
+           thread = threading.Thread(target=process)
+           thread.start()
+
+
     def __init__(self, root):
         self.root = root
         self.root.title("Enhanced Video Editor")
