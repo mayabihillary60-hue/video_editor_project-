@@ -9,6 +9,9 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 import threading
+from timeline_editor import TimelineEditor, Timeline, TrackItem, Keyframe
+from keyframe_dialog import KeyframeDialog
+import uuid
 from video_processor import VideoProcessor
 
 class ProgressDialog:
