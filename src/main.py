@@ -553,4 +553,489 @@ class VideoEditor:
             ("Edge Detect", "edge_detect"),
             ("Pixelate", "pixelate"),
             ("Vintage", "vintage")
-      
+        ]
+        # Filter selection
+        filter_frame = ttk.Frame(filter_window)
+        filter_frame.pack(pady=10)
+        
+        for i, (text, value) in enumerate(filters):
+            col = i % 2
+            row = i // 2
+            ttk.Radiobutton(
+                filter_frame,
+                text=text,
+                variable=filter_var,
+                value=value
+            ).grid(row=row, column=col, sticky=tk.W, padx=10, pady=2)
+        
+        # Intensity slider (for filters that support it)
+        ttk.Label(filter_window, text="Intensity:").pack(pady=5)
+        intensity_var = tk.DoubleVar(value=1.0)
+        intensity_scale = ttk.Scale(
+            filter_window,
+            from_=0.0,
+            to=2.0,
+            orient=tk.HORIZONTAL,
+            variable=intensity_var,
+            length=200
+        )
+        intensity_scale.pack(pady=5)
+        
+        # Preview area (simplified)
+        preview_frame = ttk.LabelFrame(filter_window, text="Preview", padding="5")
+        preview_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        
+        preview_label = ttk.Label(
+            preview_frame,
+            text="Filter preview will appear here\n(coming soon)",
+            background="#333333",
+            foreground="white"
+        )
+        preview_label.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Output location
+        ttk.Label(
+            filter_window,
+            text="Output will be saved to 'outputs/filtered_video.mp4'"
+        ).pack(pady=5)
+        
+        # Apply button
+        ttk.Button(
+            filter_window,
+            text="Apply Filter",
+            command=lambda: self.start_apply_filter(
+                filter_var.get(),
+                intensity_var.get(),
+                filter_window
+            )
+        ).pack(pady=10)
+
+    def start_apply_filter(self, filter_type, intensity, window):
+        """Start filter application in a separate thread"""
+        window.destroy()
+        
+        # Set output file
+        self.output_file = str(Path("outputs/filtered_video.mp4"))
+        os.makedirs("outputs", exist_ok=True)
+        self.output_label.config(text="filtered_video.mp4")
+        
+        # Show progress dialog
+        progress = ProgressDialog(self.root, f"Applying {filter_type} Filter")
+        
+        def process():
+            success, result = self.processor.apply_filter(
+                self.input_file,
+                self.output_file,
+                filter_type,
+                intensity,
+                lambda v, s: progress.update_progress(v, s)
+            )
+            
+            progress.close()
+            
+            if success:
+                self.status_var.set(f"Filter applied: {os.path.basename(self.output_file)}")
+                messagebox.showinfo("Success", f"Filter applied successfully!\nSaved to: {self.output_file}")
+            else:
+                self.status_var.set("Filter failed")
+                messagebox.showerror("Error", f"Failed to apply filter: {result}")
+        
+        thread = threading.Thread(target=process)
+        thread.start()
+
+    def add_transition(self):
+        """Add transition between two videos"""
+        # Create transition dialog
+        transition_window = tk.Toplevel(self.root)
+        transition_window.title("Add Transition")
+        transition_window.geometry("500x400")
+        transition_window.transient(self.root)
+        transition_window.grab_set()
+        
+        ttk.Label(transition_window, text="Select two videos to add transition:").pack(pady=10)
+        
+        # Video selection
+        video_frame = ttk.Frame(transition_window)
+        video_frame.pack(pady=10)
+        
+        ttk.Label(video_frame, text="First Video:").grid(row=0, column=0, padx=5, pady=5)
+        video1_label = ttk.Label(video_frame, text="Not selected", foreground="gray", width=30)
+        video1_label.grid(row=0, column=1, padx=5, pady=5)
+        
+        def select_video1():
+            filename = filedialog.askopenfilename(
+                title="Select First Video",
+                filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv")]
+            )
+            if filename:
+                video1_label.config(text=os.path.basename(filename), foreground="black")
+                video1_label.filename = filename
+        
+        ttk.Button(video_frame, text="Browse...", command=select_video1).grid(row=0, column=2, padx=5)
+        
+        ttk.Label(video_frame, text="Second Video:").grid(row=1, column=0, padx=5, pady=5)
+        video2_label = ttk.Label(video_frame, text="Not selected", foreground="gray", width=30)
+        video2_label.grid(row=1, column=1, padx=5, pady=5)
+        
+        def select_video2():
+            filename = filedialog.askopenfilename(
+                title="Select Second Video",
+                filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv")]
+            )
+            if filename:
+                video2_label.config(text=os.path.basename(filename), foreground="black")
+                video2_label.filename = filename
+        
+        ttk.Button(video_frame, text="Browse...", command=select_video2).grid(row=1, column=2, padx=5)
+        
+        # Transition type
+        ttk.Label(transition_window, text="Transition Type:").pack(pady=5)
+        
+        transition_var = tk.StringVar(value="fade")
+        
+        transitions = [
+            ("Fade", "fade"),
+            ("Slide", "slide"),
+            ("Wipe", "wipe"),
+            ("Zoom", "zoom")
+        ]
+        
+        trans_frame = ttk.Frame(transition_window)
+        trans_frame.pack(pady=5)
+        
+        for text, value in transitions:
+            ttk.Radiobutton(
+                trans_frame,
+                text=text,
+                variable=transition_var,
+                value=value
+            ).pack(side=tk.LEFT, padx=10)
+        
+        # Duration
+        ttk.Label(transition_window, text="Transition Duration (seconds):").pack(pady=5)
+        duration_var = tk.DoubleVar(value=1.0)
+        duration_spin = ttk.Spinbox(
+            transition_window,
+            from_=0.5,
+            to=5.0,
+            increment=0.5,
+            textvariable=duration_var,
+            width=10
+        )
+        duration_spin.pack(pady=5)
+        
+        # Output location
+        ttk.Label(
+            transition_window,
+            text="Output will be saved to 'outputs/transition_video.mp4'"
+        ).pack(pady=10)
+        
+        # Apply button
+        ttk.Button(
+            transition_window,
+            text="Apply Transition",
+            command=lambda: self.start_add_transition(
+                getattr(video1_label, 'filename', None),
+                getattr(video2_label, 'filename', None),
+                transition_var.get(),
+                duration_var.get(),
+                transition_window
+            )
+        ).pack(pady=10)
+
+    def start_add_transition(self, video1, video2, transition_type, duration, window):
+        """Start transition application in a separate thread"""
+        if not video1 or not video2:
+            messagebox.showerror("Error", "Please select both videos!")
+            return
+        
+        window.destroy()
+        
+        # Set output file
+        self.output_file = str(Path("outputs/transition_video.mp4"))
+        os.makedirs("outputs", exist_ok=True)
+        self.output_label.config(text="transition_video.mp4")
+        
+        # Show progress dialog
+        progress = ProgressDialog(self.root, f"Adding {transition_type} Transition")
+        
+        def process():
+            success, result = self.processor.add_transition(
+                video1,
+                video2,
+                self.output_file,
+                transition_type,
+                duration,
+                lambda v, s: progress.update_progress(v, s)
+            )
+            
+            progress.close()
+            
+            if success:
+                self.status_var.set(f"Transition added: {os.path.basename(self.output_file)}")
+                messagebox.showinfo("Success", f"Transition added successfully!\nSaved to: {self.output_file}")
+            else:
+                self.status_var.set("Transition failed")
+                messagebox.showerror("Error", f"Failed to add transition: {result}")
+        
+        thread = threading.Thread(target=process)
+        thread.start()
+    
+    def change_speed(self):
+        """Change video speed"""
+        if not self.input_file:
+            messagebox.showerror("Error", "Please select an input video first!")
+            return
+        
+        # Create speed dialog
+        speed_window = tk.Toplevel(self.root)
+        speed_window.title("Change Video Speed")
+        speed_window.geometry("400x350")
+        speed_window.transient(self.root)
+        speed_window.grab_set()
+        
+        ttk.Label(speed_window, text="Select speed factor:").pack(pady=10)
+        
+        speed_var = tk.DoubleVar(value=1.0)
+        
+        speeds = [
+            ("0.25x (Slowest)", 0.25), 
+            ("0.5x (Slower)", 0.5), 
+            ("0.75x (Slow)", 0.75),
+            ("1.0x (Normal)", 1.0), 
+            ("1.5x (Fast)", 1.5), 
+            ("2.0x (Faster)", 2.0),
+            ("3.0x (Very Fast)", 3.0),
+            ("4.0x (Fastest)", 4.0)
+        ]
+        
+        for text, value in speeds:
+            ttk.Radiobutton(
+                speed_window,
+                text=text,
+                variable=speed_var,
+                value=value
+            ).pack(pady=2)
+        
+        # Duration info
+        if self.video_info:
+            original_duration = self.video_info['duration']
+            new_duration = original_duration / speed_var.get()
+            duration_label = ttk.Label(
+                speed_window, 
+                text=f"Original: {original_duration:.1f}s → New: {new_duration:.1f}s"
+            )
+            duration_label.pack(pady=5)
+        
+        # Output location
+        ttk.Label(
+            speed_window, 
+            text="Output will be saved to 'outputs/speed_changed.mp4'"
+        ).pack(pady=10)
+        
+        # Apply button
+        ttk.Button(
+            speed_window,
+            text="Apply Speed Change",
+            command=lambda: self.start_speed_change(speed_var.get(), speed_window)
+        ).pack(pady=10)
+    
+    def start_speed_change(self, speed_factor, window):
+        """Start speed change operation in a separate thread"""
+        window.destroy()
+        
+        # Set output file
+        self.output_file = str(Path("outputs/speed_changed.mp4"))
+        os.makedirs("outputs", exist_ok=True)
+        self.output_label.config(text="speed_changed.mp4")
+        
+        # Show progress dialog
+        progress = ProgressDialog(self.root, "Changing Video Speed")
+        
+        def process():
+            success, result = self.processor.change_speed(
+                self.input_file,
+                self.output_file,
+                speed_factor,
+                lambda v, s: progress.update_progress(v, s)
+            )
+            
+            progress.close()
+            
+            if success:
+                self.status_var.set(f"Speed changed: {os.path.basename(self.output_file)}")
+                messagebox.showinfo("Success", f"Speed changed successfully!\nSaved to: {self.output_file}")
+            else:
+                self.status_var.set("Speed change failed")
+                messagebox.showerror("Error", f"Failed to change speed: {result}")
+        
+        thread = threading.Thread(target=process)
+        thread.start()
+    
+    def add_audio(self):
+        """Add audio to video"""
+        if not self.input_file:
+            messagebox.showerror("Error", "Please select an input video first!")
+            return
+        
+        # Create audio dialog
+        audio_window = tk.Toplevel(self.root)
+        audio_window.title("Add Audio")
+        audio_window.geometry("400x250")
+        audio_window.transient(self.root)
+        audio_window.grab_set()
+        
+        ttk.Label(audio_window, text="Select audio file to add:").pack(pady=10)
+        
+        audio_frame = ttk.Frame(audio_window)
+        audio_frame.pack(pady=10)
+        
+        audio_label = ttk.Label(audio_frame, text="No file selected", foreground="gray", width=40)
+        audio_label.pack(side=tk.LEFT, padx=5)
+        
+        audio_path = [None]  # Use list to allow modification in nested function
+        
+        def select_audio():
+            filename = filedialog.askopenfilename(
+                title="Select Audio File",
+                filetypes=[
+                    ("Audio files", "*.mp3 *.wav *.aac *.m4a"),
+                    ("All files", "*.*")
+                ]
+            )
+            if filename:
+                audio_label.config(text=os.path.basename(filename), foreground="black")
+                audio_path[0] = filename
+        
+        ttk.Button(audio_frame, text="Browse...", command=select_audio).pack(side=tk.RIGHT, padx=5)
+        
+        # Volume control
+        ttk.Label(audio_window, text="Volume:").pack(pady=5)
+        volume_var = tk.DoubleVar(value=1.0)
+        volume_scale = ttk.Scale(
+            audio_window,
+            from_=0.0,
+            to=2.0,
+            orient=tk.HORIZONTAL,
+            variable=volume_var,
+            length=200
+        )
+        volume_scale.pack(pady=5)
+        
+        # Output location
+        ttk.Label(
+            audio_window,
+            text="Output will be saved to 'outputs/audio_video.mp4'"
+        ).pack(pady=10)
+        
+        # Apply button
+        ttk.Button(
+            audio_window,
+            text="Add Audio",
+            command=lambda: self.start_add_audio(
+                audio_path[0],
+                volume_var.get(),
+                audio_window
+            )
+        ).pack(pady=10)
+    
+    def start_add_audio(self, audio_file, volume, window):
+        """Start add audio operation in a separate thread"""
+        if not audio_file:
+            messagebox.showerror("Error", "Please select an audio file!")
+            return
+        
+        window.destroy()
+        
+        # Set output file
+        self.output_file = str(Path("outputs/audio_video.mp4"))
+        os.makedirs("outputs", exist_ok=True)
+        self.output_label.config(text="audio_video.mp4")
+        
+        # Show progress dialog
+        progress = ProgressDialog(self.root, "Adding Audio to Video")
+        
+        def process():
+            success, result = self.processor.add_audio(
+                self.input_file,
+                audio_file,
+                self.output_file,
+                volume,
+                lambda v, s: progress.update_progress(v, s)
+            )
+            
+            progress.close()
+            
+            if success:
+                self.status_var.set(f"Audio added: {os.path.basename(self.output_file)}")
+                messagebox.showinfo("Success", f"Audio added successfully!\nSaved to: {self.output_file}")
+            else:
+                self.status_var.set("Add audio failed")
+                messagebox.showerror("Error", f"Failed to add audio: {result}")
+        
+        thread = threading.Thread(target=process)
+        thread.start()
+    
+    def extract_audio(self):
+        """Extract audio from video"""
+        if not self.input_file:
+            messagebox.showerror("Error", "Please select an input video first!")
+            return
+        
+        # Set output file
+        output_file = filedialog.asksaveasfilename(
+            title="Save Audio As",
+            defaultextension=".mp3",
+            filetypes=[
+                ("MP3 files", "*.mp3"),
+                ("WAV files", "*.wav"),
+                ("AAC files", "*.aac"),
+                ("All files", "*.*")
+            ]
+        )
+        
+        if output_file:
+            # Show progress dialog
+            progress = ProgressDialog(self.root, "Extracting Audio")
+            
+            def process():
+                success, result = self.processor.extract_audio(
+                    self.input_file,
+                    output_file,
+                    lambda v, s: progress.update_progress(v, s)
+                )
+                
+                progress.close()
+                
+                if success:
+                    self.status_var.set(f"Audio extracted: {os.path.basename(output_file)}")
+                    messagebox.showinfo("Success", f"Audio extracted successfully!\nSaved to: {output_file}")
+                else:
+                    self.status_var.set("Extract failed")
+                    messagebox.showerror("Error", f"Failed to extract audio: {result}")
+            
+            thread = threading.Thread(target=process)
+            thread.start()
+    
+    def export_video(self):
+        """Export the video"""
+        if not self.output_file:
+            if not self.input_file:
+                messagebox.showerror("Error", "No video to export!")
+                return
+            self.output_file = self.input_file
+        
+        if os.path.exists(self.output_file):
+            messagebox.showinfo("Export", f"Video ready: {self.output_file}")
+            self.status_var.set(f"Ready to use: {os.path.basename(self.output_file)}")
+        else:
+            messagebox.showerror("Error", "Output file not found!")
+
+def main():
+    """Main entry point"""
+    root = tk.Tk()
+    app = VideoEditor(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
