@@ -1,3 +1,4 @@
+kivy
 freeze
 opencv-python
 moviepy
