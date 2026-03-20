@@ -1,3 +1,4 @@
+freeze
 opencv-python
 moviepy
 numpy
