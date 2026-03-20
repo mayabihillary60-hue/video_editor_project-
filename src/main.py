@@ -508,6 +508,7 @@ class VideoEditor:
             ("Add Text", self.add_text),
             ("Apply Filter", self.apply_filter),
             ("Add Transition", self.add_transition),
+            ("Timeline Editor", self.open_timeline_editor), 
             ("Change Speed", self.change_speed),
             ("Add Audio", self.add_audio),
             ("Extract Audio", self.extract_audio),
